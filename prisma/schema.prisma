@@ -1,0 +1,69 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Song {
+  id         Int        @id @default(autoincrement())
+  title      String
+  artist     String
+  content    String
+  key        String
+  url_song   String?
+  category   Category   @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  misaSongs  MisaSong[]
+
+  @@map("songs")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @relation(fields: [roleId], references: [id])
+  roleId   Int
+
+  @@map("users")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String
+  users User[]
+
+  @@map("roles")
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String
+  songs Song[]
+
+  @@map("categories")
+}
+
+model Misa {
+  id         Int        @id @default(autoincrement())
+  title      String
+  dateCreate DateTime   @default(now())
+  dateMisa   DateTime
+  misaSongs  MisaSong[]
+
+  @@map("misa")
+}
+
+model MisaSong {
+  id     Int  @id @default(autoincrement())
+  misa   Misa @relation(fields: [misaId], references: [id])
+  misaId Int
+  song   Song @relation(fields: [songId], references: [id])
+  songId Int
+
+  @@map("misaSong")
+}
