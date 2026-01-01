@@ -58,12 +58,23 @@ model Misa {
   @@map("misa")
 }
 
-model MisaSong {
-  id     Int  @id @default(autoincrement())
-  misa   Misa @relation(fields: [misaId], references: [id])
-  misaId Int
-  song   Song @relation(fields: [songId], references: [id])
-  songId Int
+model Moment {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique @db.VarChar(50)
+  misaSongs MisaSong[]
 
-  @@map("misaSong")
+  @@map("moment")
+}
+
+model MisaSong {
+  id       Int     @id @default(autoincrement())
+  misa     Misa    @relation(fields: [misaId], references: [id], onDelete: Cascade)
+  misaId   Int
+  song     Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
+  songId   Int
+  moment   Moment? @relation(fields: [momentId], references: [id], onDelete: Cascade)
+  momentId Int?
+  key      String? @db.VarChar(10)
+
+  @@map("missa_song")
 }

@@ -34,6 +34,19 @@ async function main() {
 
     console.log('Categories created.');
 
+    // Moments
+    const moments = ["Entrada", "Piedad", "Gloria", "Aleluya", "Ofertorio", "Santo", "Cordero", "Comunión", "Salida"];
+
+    for (const moment of moments) {
+        await prisma.moment.upsert({
+            where: { nombre: moment },
+            update: {},
+            create: { nombre: moment },
+        });
+    }
+
+    console.log('Moments created.');
+
     // User
     const hashedPassword = await bcrypt.hash('password123', 10);
     const adminUser = await prisma.user.upsert({
