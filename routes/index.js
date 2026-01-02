@@ -13,5 +13,7 @@ router.use('/moments', require('./moment.routes'));
 router.use('/misas', require('./misa.routes'));
 router.use('/users', require('./users.routes'));
 router.use('/roles', require('./roles.routes'));
+router.use('/check', require('./check.routes'));
+
 
 module.exports = router;
