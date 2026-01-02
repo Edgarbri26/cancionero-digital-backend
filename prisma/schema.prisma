@@ -57,6 +57,7 @@ model Misa {
   misaSongs  MisaSong[]
   visibility String     @default("PUBLIC")
   shareToken String?    @default(uuid())
+  editToken  String?    @default(uuid())
   userId     Int?
   user       User?      @relation(fields: [userId], references: [id])
 

@@ -47,7 +47,7 @@ exports.getAllMisas = async (req, res) => {
 
 exports.getMisaById = async (req, res) => {
     const { id } = req.params;
-    const { token: shareToken } = req.query;
+    const { share_token: shareToken, edit_token: editToken } = req.query;
     const userId = getUserId(req);
 
     try {
@@ -69,13 +69,19 @@ exports.getMisaById = async (req, res) => {
 
         const isOwner = userId && misa.userId === userId;
         const isPublic = misa.visibility === 'PUBLIC';
-        const hasValidToken = shareToken && shareToken === misa.shareToken;
+        const hasValidShareToken = shareToken && shareToken === misa.shareToken;
+        const hasValidEditToken = editToken && editToken === misa.editToken;
 
-        if (!isPublic && !isOwner && !hasValidToken) {
+        const canEdit = isOwner || hasValidEditToken;
+
+        // Access control:
+        // Public -> Everyone can view
+        // Private -> Owner, EditToken, or ShareToken required to view
+        if (!isPublic && !canEdit && !hasValidShareToken) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        res.json({ ...misa, isOwner });
+        res.json({ ...misa, isOwner, canEdit });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -104,6 +110,7 @@ exports.createMisa = async (req, res) => {
 exports.updateMisa = async (req, res) => {
     const { id } = req.params;
     const { title, dateMisa, visibility } = req.body;
+    const { edit_token: editToken } = req.query;
     const userId = req.user ? req.user.id : null;
 
     try {
@@ -111,7 +118,10 @@ exports.updateMisa = async (req, res) => {
         const existingMisa = await prisma.misa.findUnique({ where: { id: parseInt(id) } });
         if (!existingMisa) return res.status(404).json({ error: 'Misa not found' });
 
-        if (existingMisa.userId && existingMisa.userId !== userId) {
+        const isOwner = existingMisa.userId && existingMisa.userId === userId;
+        const hasValidEditToken = editToken && editToken === existingMisa.editToken;
+
+        if (!isOwner && !hasValidEditToken) {
             return res.status(403).json({ error: 'Not authorized to update this misa' });
         }
 
@@ -155,14 +165,19 @@ exports.deleteMisa = async (req, res) => {
 exports.addSongToMisa = async (req, res) => {
     const { id } = req.params; // Misa ID
     const { songId, momentId, key } = req.body;
+    const { edit_token: editToken } = req.query;
     const userId = req.user ? req.user.id : null;
 
     try {
         // Check ownership of Misa
         const misa = await prisma.misa.findUnique({ where: { id: parseInt(id) } });
         if (!misa) return res.status(404).json({ error: 'Misa not found' });
-        if (misa.userId && misa.userId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
+
+        const isOwner = misa.userId && misa.userId === userId;
+        const hasValidEditToken = editToken && editToken === misa.editToken;
+
+        if (!isOwner && !hasValidEditToken) {
+            return res.status(403).json({ error: 'Not authorized to add songs to this misa' });
         }
 
         const misaSong = await prisma.misaSong.create({
@@ -181,17 +196,20 @@ exports.addSongToMisa = async (req, res) => {
 };
 
 exports.removeSongFromMisa = async (req, res) => {
-    const { id: misaId, misaSongId } = req.params;
+    const { id, misaSongId } = req.params;
+    const { edit_token: editToken } = req.query;
     const userId = req.user ? req.user.id : null;
 
     try {
-        // Check ownership of Misa
-        const misa = await prisma.misa.findUnique({ where: { id: parseInt(misaId) } });
+        const misa = await prisma.misa.findUnique({ where: { id: parseInt(id) } });
         if (!misa) return res.status(404).json({ error: 'Misa not found' });
-        if (misa.userId && misa.userId !== userId) {
-            return res.status(403).json({ error: 'Not authorized' });
-        }
 
+        const isOwner = misa.userId && misa.userId === userId;
+        const hasValidEditToken = editToken && editToken === misa.editToken;
+
+        if (!isOwner && !hasValidEditToken) {
+            return res.status(403).json({ error: 'Not authorized to remove songs from this misa' });
+        }
         await prisma.misaSong.delete({
             where: { id: parseInt(misaSongId) }
         });
