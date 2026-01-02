@@ -11,5 +11,7 @@ router.use('/categories', categoriesRoutes);
 router.use('/stats', require('./stats.routes'));
 router.use('/moments', require('./moment.routes'));
 router.use('/misas', require('./misa.routes'));
+router.use('/users', require('./users.routes'));
+router.use('/roles', require('./roles.routes'));
 
 module.exports = router;

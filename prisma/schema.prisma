@@ -28,6 +28,7 @@ model User {
   password String
   role     Role   @relation(fields: [roleId], references: [id])
   roleId   Int
+  misas    Misa[]
 
   @@map("users")
 }
@@ -54,6 +55,10 @@ model Misa {
   dateCreate DateTime   @default(now())
   dateMisa   DateTime
   misaSongs  MisaSong[]
+  visibility String     @default("PUBLIC")
+  shareToken String?    @default(uuid())
+  userId     Int?
+  user       User?      @relation(fields: [userId], references: [id])
 
   @@map("misa")
 }
