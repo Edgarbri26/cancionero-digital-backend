@@ -9,6 +9,15 @@ exports.getAllSongs = async (req, res) => {
             where.categoryId = parseInt(categoryId);
         }
 
+        // By default show only active, unless 'all' query param is present
+        // However, for admin views we might want all.
+        // Let's check headers or a specific query param.
+        // For simplicity: if req.user has permission 'song.edit', show all?
+        // Or just add a query param 'includeInactive=true'
+        if (req.query.includeInactive !== 'true') {
+            where.active = true;
+        }
+
         // If searching, we currently filter in memory, so we can't limit in DB efficiently without moving search to DB.
         // For now, if NO search query, we limit in DB.
         // If there IS a search query, we simply fetch all matching and then potentially slice (though the user requirement is mainly for the home page which has no query).
@@ -66,6 +75,7 @@ exports.createSong = async (req, res) => {
                 key,
                 url_song,
                 categoryId: parseInt(categoryId), // Ensure it's an integer
+                active: true
             },
         });
         res.json(song);
@@ -101,9 +111,22 @@ exports.updateSong = async (req, res) => {
                 key,
                 url_song,
                 categoryId: parseInt(categoryId),
+                active: req.body.active !== undefined ? req.body.active : undefined
             },
         });
         res.json(song);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteSong = async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.song.delete({
+            where: { id: parseInt(id) },
+        });
+        res.json({ message: 'Song deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

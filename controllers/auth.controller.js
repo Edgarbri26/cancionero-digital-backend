@@ -10,7 +10,11 @@ exports.login = async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { email },
-            include: { role: true },
+            include: {
+                role: {
+                    include: { permissions: true }
+                }
+            },
         });
 
         if (!user) {
@@ -22,9 +26,11 @@ exports.login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        const permissions = user.role.permissions.map(p => p.name);
+
         // Generate Token
         const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role.name },
+            { id: user.id, email: user.email, role: user.role.name, permissions },
             SECRET_KEY,
             { expiresIn: '24h' }
         );
@@ -37,7 +43,7 @@ exports.login = async (req, res) => {
             sameSite: 'lax' // Allows cookie to be sent on same-site navigation
         });
 
-        res.json({ message: 'Login successful', user: { id: user.id, email: user.email, role: user.role.name } });
+        res.json({ message: 'Login successful', user: { id: user.id, email: user.email, role: user.role.name, permissions } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

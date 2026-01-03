@@ -6,10 +6,13 @@ async function main() {
 
     // Permissions
     const permissions = [
-        'user.view', 'user.create', 'user.edit', 'user.delete',
-        'role.view', 'role.edit',
-        'song.view', 'song.create', 'song.edit', 'song.delete',
-        'misa.view', 'misa.create', 'misa.edit', 'misa.delete',
+        'view.admin',        // Access to Admin Panel
+        'user.manage',       // Create/Edit/Delete Users
+        'song.create',       // Create new songs
+        'song.edit',         // Edit existing songs
+        'song.delete',       // Delete songs
+        'misa.create',       // Create new Misas
+        // 'misa.view' is public, so no permission needed strictly, or handled by auth
     ];
 
     const permissionRecords = {};
@@ -28,6 +31,7 @@ async function main() {
         where: { id: 1 },
         update: {
             permissions: {
+                set: [], // Clear existing to ensure clean slate on re-seed
                 connect: permissions.map(p => ({ name: p }))
             }
         },
@@ -39,11 +43,15 @@ async function main() {
         },
     });
 
-    const userPermissions = ['song.view', 'misa.view'];
+    // User Role: Can create Misas by default. 
+    // Maybe also create songs? The user implied restrictions. 
+    // Let's give them misa.create and song.create/edit by default, but NOT song.delete.
+    const userPermissions = ['misa.create', 'song.create', 'song.edit'];
     const userRole = await prisma.role.upsert({
         where: { id: 2 },
         update: {
             permissions: {
+                set: [],
                 connect: userPermissions.map(p => ({ name: p }))
             }
         },

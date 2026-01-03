@@ -17,6 +17,7 @@ model Song {
   category   Category   @relation(fields: [categoryId], references: [id])
   categoryId Int
   misaSongs  MisaSong[]
+  active     Boolean    @default(true)
 
   @@map("songs")
 }

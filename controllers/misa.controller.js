@@ -77,9 +77,12 @@ exports.getMisaById = async (req, res) => {
         // Access control:
         // Public -> Everyone can view
         // Private -> Owner, EditToken, or ShareToken required to view
+        // RELAXED: User requested that knowing the ID (link) should be enough to view (Unlisted behavior)
+        /*
         if (!isPublic && !canEdit && !hasValidShareToken) {
             return res.status(403).json({ error: 'Access denied' });
         }
+        */
 
         res.json({ ...misa, isOwner, canEdit });
     } catch (error) {
