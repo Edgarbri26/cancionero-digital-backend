@@ -16,4 +16,9 @@ router.use('/roles', require('./roles.routes'));
 router.use('/check', require('./check.routes'));
 
 
+const permissionsRoutes = require('./permissions.routes');
+
+// ... existing mounts ...
+router.use('/permissions', permissionsRoutes);
+
 module.exports = router;

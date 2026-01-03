@@ -4,20 +4,54 @@ const bcrypt = require('bcryptjs');
 async function main() {
     console.log('Start seeding ...');
 
+    // Permissions
+    const permissions = [
+        'user.view', 'user.create', 'user.edit', 'user.delete',
+        'role.view', 'role.edit',
+        'song.view', 'song.create', 'song.edit', 'song.delete',
+        'misa.view', 'misa.create', 'misa.edit', 'misa.delete',
+    ];
+
+    const permissionRecords = {};
+    for (const perm of permissions) {
+        permissionRecords[perm] = await prisma.permission.upsert({
+            where: { name: perm },
+            update: {},
+            create: { name: perm },
+        });
+    }
+
+    console.log('Permissions created.');
+
     // Roles
     const adminRole = await prisma.role.upsert({
         where: { id: 1 },
-        update: {},
+        update: {
+            permissions: {
+                connect: permissions.map(p => ({ name: p }))
+            }
+        },
         create: {
             name: 'ADMIN',
+            permissions: {
+                connect: permissions.map(p => ({ name: p }))
+            }
         },
     });
 
+    const userPermissions = ['song.view', 'misa.view'];
     const userRole = await prisma.role.upsert({
         where: { id: 2 },
-        update: {},
+        update: {
+            permissions: {
+                connect: userPermissions.map(p => ({ name: p }))
+            }
+        },
         create: {
             name: 'USER',
+            permissions: {
+                connect: userPermissions.map(p => ({ name: p }))
+            }
         },
     });
 
