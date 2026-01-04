@@ -100,19 +100,20 @@ exports.getSongById = async (req, res) => {
 
 exports.updateSong = async (req, res) => {
     const { id } = req.params;
-    const { title, artist, content, key, url_song, categoryId } = req.body;
+    const { title, artist, content, key, url_song, categoryId, active } = req.body;
     try {
+        const data = {};
+        if (title !== undefined) data.title = title;
+        if (artist !== undefined) data.artist = artist;
+        if (content !== undefined) data.content = content;
+        if (key !== undefined) data.key = key;
+        if (url_song !== undefined) data.url_song = url_song;
+        if (categoryId !== undefined) data.categoryId = parseInt(categoryId);
+        if (active !== undefined) data.active = active;
+
         const song = await prisma.song.update({
             where: { id: parseInt(id) },
-            data: {
-                title,
-                artist,
-                content,
-                key,
-                url_song,
-                categoryId: parseInt(categoryId),
-                active: req.body.active !== undefined ? req.body.active : undefined
-            },
+            data
         });
         res.json(song);
     } catch (error) {
