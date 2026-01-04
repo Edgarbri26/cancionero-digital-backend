@@ -14,8 +14,22 @@ exports.getAllSongs = async (req, res) => {
         // Let's check headers or a specific query param.
         // For simplicity: if req.user has permission 'song.edit', show all?
         // Or just add a query param 'includeInactive=true'
-        if (req.query.includeInactive !== 'true') {
-            where.active = true;
+        // Check role from optionalAuth
+        const isAdmin = req.user?.role === 'ADMIN';
+
+        // Default: Show only active songs
+        let activeFilter = true;
+
+        if (isAdmin) {
+            if (req.query.active === 'false') {
+                activeFilter = false;
+            } else if (req.query.active === 'all') {
+                activeFilter = undefined;
+            }
+        }
+
+        if (activeFilter !== undefined) {
+            where.active = activeFilter;
         }
 
         // If searching, we currently filter in memory, so we can't limit in DB efficiently without moving search to DB.

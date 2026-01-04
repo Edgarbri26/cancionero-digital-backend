@@ -20,6 +20,19 @@ exports.authenticateToken = (req, res, next) => {
     }
 };
 
+exports.optionalAuth = (req, res, next) => {
+    const token = req.cookies?.token || req.headers['authorization']?.split(' ')[1];
+    if (!token) return next();
+
+    try {
+        const user = jwt.verify(token, SECRET_KEY);
+        req.user = user;
+    } catch (err) {
+        // Ignore invalid token for optional auth
+    }
+    next();
+};
+
 exports.authorizeAdmin = (req, res, next) => {
     if (req.user && req.user.role === 'ADMIN') {
         next();

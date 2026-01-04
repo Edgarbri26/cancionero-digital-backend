@@ -2,7 +2,10 @@ const prisma = require('../prismaClient');
 
 exports.getAllCategories = async (req, res) => {
     try {
-        const categories = await prisma.category.findMany();
+        const isAdmin = req.user?.role === 'ADMIN';
+        const where = isAdmin ? {} : { isSecret: false };
+
+        const categories = await prisma.category.findMany({ where });
         res.json(categories);
     } catch (error) {
         res.status(500).json({ error: error.message });

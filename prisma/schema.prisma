@@ -52,9 +52,10 @@ model Permission {
 }
 
 model Category {
-  id    Int    @id @default(autoincrement())
-  name  String
-  songs Song[]
+  id       Int     @id @default(autoincrement())
+  name     String
+  songs    Song[]
+  isSecret Boolean @default(false)
 
   @@map("categories")
 }

@@ -49,6 +49,42 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.register = async (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Name, email and password are required' });
+    }
+
+    try {
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(409).json({ error: 'El usuario ya existe.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // find USER role
+        let role = await prisma.role.findUnique({ where: { name: 'USER' } });
+        // Fail-safe if role not found by name (e.g. casing), try ID 2
+        if (!role) role = { id: 2 };
+
+        const user = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                roleId: role.id
+            }
+        });
+
+        res.status(201).json({ message: 'Usuario registrado correctamente', user: { id: user.id, email: user.email, name: user.name } });
+    } catch (error) {
+        console.error("Register Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 exports.logout = (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logged out successfully' });
