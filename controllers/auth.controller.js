@@ -12,8 +12,12 @@ exports.login = async (req, res) => {
             where: { email },
             include: {
                 role: {
-                    include: { permissions: true }
+                    include: {
+                        permissions: true
+                    }
+
                 }
+
             },
         });
 
