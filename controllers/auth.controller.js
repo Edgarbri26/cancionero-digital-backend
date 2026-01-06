@@ -1,6 +1,7 @@
 const prisma = require('../prismaClient');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { validatePhoneNumber } = require('../utils/validation');
 
 const SECRET_KEY = process.env.JWT_SECRET || 'your_super_secret_key_change_me';
 
@@ -54,13 +55,19 @@ exports.login = async (req, res) => {
 };
 
 exports.register = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, phoneNumber } = req.body;
 
     if (!name || !email || !password) {
         return res.status(400).json({ error: 'Name, email and password are required' });
     }
 
     try {
+        if (phoneNumber) {
+            const validPhone = validatePhoneNumber(phoneNumber);
+            if (!validPhone) {
+                return res.status(400).json({ error: 'Invalid phone number' });
+            }
+        }
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
             return res.status(409).json({ error: 'El usuario ya existe.' });
@@ -78,7 +85,9 @@ exports.register = async (req, res) => {
                 name,
                 email,
                 password: hashedPassword,
-                roleId: role.id
+                password: hashedPassword,
+                roleId: role.id,
+                phoneNumber: phoneNumber ? validatePhoneNumber(phoneNumber) : null
             }
         });
 

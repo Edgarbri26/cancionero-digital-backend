@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "title": "admin",
+    "dateCreate": "2026-01-04T03:37:31.333Z",
+    "dateMisa": "2026-01-04T00:00:00.000Z",
+    "visibility": "PRIVATE",
+    "shareToken": "a89cbf8c-f801-4253-83e7-a34c19d52e3a",
+    "editToken": "34fbd08b-393e-498d-816b-629b5be5a6e8",
+    "userId": 1
+  },
+  {
+    "id": 2,
+    "title": "edgar",
+    "dateCreate": "2026-01-04T16:15:44.567Z",
+    "dateMisa": "2026-01-04T00:00:00.000Z",
+    "visibility": "PRIVATE",
+    "shareToken": "82b4cb5e-ad2d-41e4-a810-30d0dd4e10aa",
+    "editToken": "cd6950de-eed9-41bd-aec1-d37d70960735",
+    "userId": 2
+  },
+  {
+    "id": 4,
+    "title": "nueva",
+    "dateCreate": "2026-01-05T00:19:48.332Z",
+    "dateMisa": "2026-01-04T00:00:00.000Z",
+    "visibility": "PRIVATE",
+    "shareToken": "3eb43384-d92e-4057-875c-2e3d50a48fec",
+    "editToken": "99e63aa1-9fca-4823-930d-93d032fe5c78",
+    "userId": 1
+  }
+]

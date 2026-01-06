@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "Adoración",
+    "isSecret": false
+  },
+  {
+    "id": 2,
+    "name": "Alabanza",
+    "isSecret": false
+  }
+]

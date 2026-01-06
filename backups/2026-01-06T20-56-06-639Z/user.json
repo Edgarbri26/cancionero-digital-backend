@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@admin.com",
+    "password": "$2b$10$WSqZPmyiVHN837FA2Nfhp.rVfmMPV5DpdUlXClpBHYefSE66cqaYy",
+    "roleId": 1
+  },
+  {
+    "id": 2,
+    "name": "Edgar",
+    "email": "edgarbriceno26@gmail.com",
+    "password": "$2b$10$oS/xVTvcvZ9q0AEG8LHdEevWo0B4QMeAHTrAz1z7k2yoYVTTweOU2",
+    "roleId": 2
+  },
+  {
+    "id": 6,
+    "name": "erick",
+    "email": "erickagosto124@gmail.com",
+    "password": "$2b$10$ICDQb4ofSrbqnX4ai6NMn.R8nelFYx.1uWhUbeiykvxOftevJ2E8a",
+    "roleId": 3
+  },
+  {
+    "id": 7,
+    "name": "Rocío Maziel",
+    "email": "rociomzpr@gmail.com",
+    "password": "$2b$10$AZSYaVU7IwwTWej54gAiBu0bSDHUB/qx9e5HfqWjG0YLzroFc.9Oa",
+    "roleId": 2
+  }
+]

@@ -23,13 +23,14 @@ model Song {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  name     String
-  email    String @unique
-  password String
-  role     Role   @relation(fields: [roleId], references: [id])
-  roleId   Int
-  misas    Misa[]
+  id          Int     @id @default(autoincrement())
+  name        String
+  email       String  @unique
+  password    String
+  role        Role    @relation(fields: [roleId], references: [id])
+  roleId      Int
+  phoneNumber String?
+  misas       Misa[]
 
   @@map("users")
 }
