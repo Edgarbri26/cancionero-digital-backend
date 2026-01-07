@@ -48,7 +48,7 @@ exports.login = async (req, res) => {
             sameSite: 'lax' // Allows cookie to be sent on same-site navigation
         });
 
-        res.json({ message: 'Login successful', user: { id: user.id, email: user.email, role: user.role.name, permissions } });
+        res.json({ message: 'Login successful', token, user: { id: user.id, email: user.email, role: user.role.name, permissions } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

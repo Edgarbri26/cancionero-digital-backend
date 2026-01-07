@@ -18,6 +18,8 @@ model Song {
   categoryId Int
   misaSongs  MisaSong[]
   active     Boolean    @default(true)
+  userId     Int?
+  user       User?      @relation(fields: [userId], references: [id])
 
   @@map("songs")
 }
@@ -31,6 +33,7 @@ model User {
   roleId      Int
   phoneNumber String?
   misas       Misa[]
+  songs       Song[]
 
   @@map("users")
 }

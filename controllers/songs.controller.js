@@ -37,7 +37,8 @@ exports.getAllSongs = async (req, res) => {
         // If there IS a search query, we simply fetch all matching and then potentially slice (though the user requirement is mainly for the home page which has no query).
         const queryOptions = {
             where,
-            include: { category: true },
+            include: { category: true, user: { select: { name: true } } },
+
             orderBy: { id: 'desc' } // Always order by newest
         };
 
@@ -89,7 +90,8 @@ exports.createSong = async (req, res) => {
                 key,
                 url_song,
                 categoryId: parseInt(categoryId), // Ensure it's an integer
-                active: true
+                active: true,
+                userId: req.user ? req.user.id : null // Save the user who created the song
             },
         });
         res.json(song);
@@ -103,7 +105,7 @@ exports.getSongById = async (req, res) => {
     try {
         const song = await prisma.song.findUnique({
             where: { id: parseInt(id) },
-            include: { category: true },
+            include: { category: true, user: { select: { name: true } } },
         });
         if (!song) return res.status(404).json({ error: 'Song not found' });
         res.json(song);
