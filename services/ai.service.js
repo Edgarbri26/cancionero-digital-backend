@@ -179,7 +179,149 @@ Responde SOLO con el formato ChordPro, sin explicaciones adicionales.`;
     }
 }
 
+/**
+ * Busca una canción original usando un fragmento de letra como pista
+ * @param {string} lyricFragment - Fragmento de letra de la canción a buscar
+ * @param {string} artist - Artista/autor de la canción (opcional)
+ * @param {string} title - Título de la canción (opcional)
+ * @returns {Promise<Object>} - Objeto con la canción encontrada en formato ChordPro y metadata
+ */
+async function searchSongByLyrics(lyricFragment, artist = '', title = '') {
+    try {
+        const artistInfo = artist ? ` del artista ${artist}` : '';
+        const titleInfo = title ? ` con el título "${title}"` : '';
+
+        const prompt = `Tu tarea es IDENTIFICAR una canción católica existente usando el fragmento de letra proporcionado.
+
+Fragmento de letra:
+"${lyricFragment}"
+${titleInfo}${artistInfo}
+
+⚠️ REGLAS CRÍTICAS - DEBES SEGUIRLAS ESTRICTAMENTE:
+
+1. SOLO puedes devolver canciones católicas que REALMENTE EXISTEN
+2. NO PUEDES INVENTAR, CREAR o GENERAR canciones nuevas
+3. Si NO RECONOCES la canción con certeza, DEBES responder con un error
+4. La letra debe ser EXACTAMENTE como la canción original, palabra por palabra
+5. NO modifiques, parafrasees o "mejores" la letra original
+
+FORMATO DE RESPUESTA:
+
+Si RECONOCES la canción (estás 100% seguro):
+{
+  "found": true,
+  "title": "Título EXACTO de la canción real",
+  "artist": "Artista/compositor REAL",
+  "key": "Tono sugerido",
+  "chordPro": "Letra ORIGINAL COMPLETA con acordes en formato ChordPro"
+}
+
+Si NO RECONOCES la canción o tienes dudas:
+{
+  "found": false,
+  "error": "No se pudo identificar la canción con el fragmento proporcionado"
+}
+
+Formato ChordPro (solo si encontraste la canción):
+- Usa [] para acordes: [C], [G], [Am]
+- Usa {c: } para secciones: {c: Verso 1}, {c: Coro}
+
+Ejemplo:
+{c: Verso 1}
+[C]Letra original [G]exacta
+[Am]Sin modificar [F]nada
+
+RECORDATORIO FINAL:
+- NO inventes canciones bajo ninguna circunstancia
+- Si no estás seguro, responde con "found": false
+- La honestidad es más importante que dar una respuesta
+
+Responde SOLO con el objeto JSON, sin texto adicional.`;
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (IA_API_KEY) {
+            headers['Authorization'] = `Bearer ${IA_API_KEY}`;
+        }
+
+        const response = await axios.post(`${IA_API_URL}/chat`, {
+            messages: [
+                {
+                    role: 'system',
+                    content: 'Eres un asistente que SOLO identifica canciones católicas REALES que existen. NUNCA inventas o creas canciones nuevas. Si no reconoces una canción, SIEMPRE respondes con un error. Tu integridad es absoluta: prefieres decir "no sé" antes que inventar información. Respondes únicamente en formato JSON.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.1, // Temperatura muy baja para respuestas más determinísticas y menos creativas
+            max_tokens: 2500
+        }, { headers });
+
+        // Extraer el contenido de la respuesta
+        // La API devuelve el JSON directamente en response.data
+        let content = '';
+
+        if (typeof response.data === 'object' && response.data !== null) {
+            // Si ya es un objeto JSON, convertirlo a string para procesarlo
+            content = JSON.stringify(response.data);
+        } else if (response.data && response.data.choices && response.data.choices[0]) {
+            // Formato OpenAI estándar (por si cambia la API)
+            content = response.data.choices[0].message.content;
+        } else if (response.data && response.data.content) {
+            content = response.data.content;
+        } else if (typeof response.data === 'string') {
+            content = response.data;
+        } else {
+            throw new Error('Formato de respuesta desconocido de la API de IA');
+        }
+
+        console.log('Contenido recibido de IA:', content.substring(0, 200) + '...');
+
+        // Intentar parsear el JSON
+        let result;
+        try {
+            // Si content ya es un objeto parseado, usarlo directamente
+            if (typeof content === 'string') {
+                // Limpiar el contenido por si tiene markdown
+                const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                result = JSON.parse(cleanContent);
+            } else {
+                result = content;
+            }
+        } catch (parseError) {
+            console.error('Error al parsear respuesta JSON de IA:', parseError);
+            console.error('Contenido recibido:', content);
+            throw new Error('La IA no devolvió un formato JSON válido');
+        }
+
+        // Verificar si la canción fue encontrada
+        if (!result.found || result.found === false) {
+            throw new Error(result.error || 'No se pudo identificar la canción con el fragmento proporcionado. Intenta con un fragmento más largo o más específico.');
+        }
+
+        // Validar que tenga los campos necesarios
+        if (!result.chordPro) {
+            throw new Error('La respuesta no contiene el campo chordPro');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error al buscar canción con IA:', error.message);
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+        throw new Error(`Error al buscar la canción: ${error.message}`);
+    }
+}
+
 module.exports = {
     generateSongWithChords,
-    autocompleteChordsForLyrics
+    autocompleteChordsForLyrics,
+    searchSongByLyrics
 };

@@ -15,6 +15,7 @@ router.use('/users', require('./users.routes'));
 router.use('/roles', require('./roles.routes'));
 router.use('/check', require('./check.routes'));
 router.use('/generate', require('./generate.routes'));
+router.use('/search', require('./search.routes'));
 
 
 const permissionsRoutes = require('./permissions.routes');
@@ -23,3 +24,4 @@ const permissionsRoutes = require('./permissions.routes');
 router.use('/permissions', permissionsRoutes);
 
 module.exports = router;
+

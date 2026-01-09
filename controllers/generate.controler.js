@@ -161,3 +161,80 @@ exports.autocompleteChordsForLyrics = async (req, res) => {
     }
 };
 
+/**
+ * Busca una canción por fragmento de letra
+ * 
+ * Body esperado:
+ * {
+ *   lyricFragment: string (requerido),
+ *   artist?: string (opcional),
+ *   title?: string (opcional)
+ * }
+ */
+exports.searchSongByLyrics = async (req, res) => {
+    try {
+        const { lyricFragment, artist, title } = req.body;
+
+        // Validación de parámetros
+        if (!lyricFragment || lyricFragment.trim().length === 0) {
+            return res.status(400).json({
+                error: 'Se requiere un fragmento de letra para buscar la canción'
+            });
+        }
+
+        console.log(`Buscando canción por fragmento: "${lyricFragment.substring(0, 50)}..."`);
+        if (artist) console.log(`  - Artista (pista): ${artist}`);
+        if (title) console.log(`  - Título (pista): ${title}`);
+
+        // Llamar al servicio de IA para buscar la canción
+        const result = await aiService.searchSongByLyrics(
+            lyricFragment,
+            artist || '',
+            title || ''
+        );
+
+        // El servicio ya devuelve un objeto con title, artist, key, chordPro
+        const chordProResult = result.chordPro;
+
+        // Validar que el resultado sea ChordPro válido
+        let finalChordPro = chordProResult;
+        if (!chordProUtils.isValidChordPro(chordProResult)) {
+            console.warn('La IA no devolvió un formato ChordPro válido, intentando formatear...');
+            finalChordPro = chordProUtils.formatAsChordPro(chordProResult, {
+                title: result.title,
+                key: result.key
+            });
+        }
+
+        // Extraer información adicional
+        const chords = chordProUtils.extractChords(finalChordPro);
+        const metadata = chordProUtils.extractMetadata(finalChordPro);
+        const validation = chordProUtils.validateChords(chords);
+
+        // Responder con el resultado
+        res.status(200).json({
+            success: true,
+            type: 'search',
+            chordPro: finalChordPro,
+            metadata: {
+                title: result.title || metadata.title || 'Canción encontrada',
+                artist: result.artist || metadata.artist || '',
+                key: result.key || metadata.key || 'C',
+                ...metadata
+            },
+            chords: {
+                list: chords,
+                count: chords.length,
+                validation
+            }
+        });
+
+    } catch (error) {
+        console.error('Error en searchSongByLyrics controller:', error);
+        res.status(500).json({
+            error: 'Error al buscar la canción',
+            message: error.message
+        });
+    }
+};
+
