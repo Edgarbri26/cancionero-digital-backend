@@ -14,6 +14,7 @@ router.use('/misas', require('./misa.routes'));
 router.use('/users', require('./users.routes'));
 router.use('/roles', require('./roles.routes'));
 router.use('/check', require('./check.routes'));
+router.use('/generate', require('./generate.routes'));
 
 
 const permissionsRoutes = require('./permissions.routes');
