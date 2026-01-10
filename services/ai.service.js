@@ -264,40 +264,43 @@ Responde SOLO con el objeto JSON, sin texto adicional.`;
 
         // Extraer el contenido de la respuesta
         // La API devuelve el JSON directamente en response.data
-        let content = '';
-
-        if (typeof response.data === 'object' && response.data !== null) {
-            // Si ya es un objeto JSON, convertirlo a string para procesarlo
-            content = JSON.stringify(response.data);
-        } else if (response.data && response.data.choices && response.data.choices[0]) {
-            // Formato OpenAI estándar (por si cambia la API)
-            content = response.data.choices[0].message.content;
-        } else if (response.data && response.data.content) {
-            content = response.data.content;
-        } else if (typeof response.data === 'string') {
-            content = response.data;
-        } else {
-            throw new Error('Formato de respuesta desconocido de la API de IA');
-        }
-
-        console.log('Contenido recibido de IA:', content.substring(0, 200) + '...');
-
-        // Intentar parsear el JSON
         let result;
-        try {
-            // Si content ya es un objeto parseado, usarlo directamente
-            if (typeof content === 'string') {
+
+        console.log('Tipo de response.data:', typeof response.data);
+        console.log('Response.data:', JSON.stringify(response.data).substring(0, 200));
+
+        // La API devuelve directamente el objeto JSON, no envuelto en choices
+        if (typeof response.data === 'object' && response.data !== null) {
+            // Si response.data ya tiene los campos found, title, etc., usarlo directamente
+            if ('found' in response.data) {
+                result = response.data;
+            }
+            // Si tiene el formato OpenAI estándar con choices
+            else if (response.data.choices && response.data.choices[0]) {
+                const content = response.data.choices[0].message.content;
                 // Limpiar el contenido por si tiene markdown
                 const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
                 result = JSON.parse(cleanContent);
-            } else {
-                result = content;
             }
-        } catch (parseError) {
-            console.error('Error al parsear respuesta JSON de IA:', parseError);
-            console.error('Contenido recibido:', content);
-            throw new Error('La IA no devolvió un formato JSON válido');
+            // Si tiene un campo content
+            else if (response.data.content) {
+                const cleanContent = response.data.content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                result = JSON.parse(cleanContent);
+            }
+            else {
+                throw new Error('Formato de respuesta desconocido de la API de IA');
+            }
         }
+        // Si es un string, parsearlo
+        else if (typeof response.data === 'string') {
+            const cleanContent = response.data.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            result = JSON.parse(cleanContent);
+        }
+        else {
+            throw new Error('Formato de respuesta desconocido de la API de IA');
+        }
+
+        console.log('Resultado parseado:', result);
 
         // Verificar si la canción fue encontrada
         if (!result.found || result.found === false) {
@@ -311,11 +314,25 @@ Responde SOLO con el objeto JSON, sin texto adicional.`;
 
         return result;
     } catch (error) {
-        console.error('Error al buscar canción con IA:', error.message);
+        console.error('❌ Error al buscar canción con IA:');
+        console.error('  - Message:', error.message);
+        console.error('  - API URL:', IA_API_URL);
+        console.error('  - Has API Key:', !!IA_API_KEY);
+
         if (error.response) {
-            console.error('Response status:', error.response.status);
-            console.error('Response data:', error.response.data);
+            console.error('  - Response status:', error.response.status);
+            console.error('  - Response data:', JSON.stringify(error.response.data, null, 2));
+            console.error('  - Response headers:', error.response.headers);
+        } else if (error.request) {
+            console.error('  - No response received');
+            console.error('  - Request:', error.request);
         }
+
+        // Si el error es que la canción no fue encontrada, usar un mensaje más claro
+        if (error.message.includes('No se pudo identificar')) {
+            throw error;
+        }
+
         throw new Error(`Error al buscar la canción: ${error.message}`);
     }
 }
