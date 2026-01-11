@@ -37,10 +37,26 @@ exports.getAllSongs = async (req, res) => {
         // If there IS a search query, we simply fetch all matching and then potentially slice (though the user requirement is mainly for the home page which has no query).
         const queryOptions = {
             where,
-            include: { category: true, user: { select: { name: true } } },
-
-            orderBy: { id: 'desc' } // Always order by newest
+            orderBy: { id: 'desc' }
         };
+
+        if (!q) {
+            // Optimization: Select only necessary fields for list view (exclude 'content')
+            queryOptions.select = {
+                id: true,
+                title: true,
+                artist: true,
+                key: true,
+                url_song: true,
+                active: true,
+                categoryId: true,
+                category: true,
+                user: { select: { name: true } }
+            };
+        } else {
+            // If searching, we need content for filtering (in-memory)
+            queryOptions.include = { category: true, user: { select: { name: true } } };
+        }
 
         if (!q && limit) {
             queryOptions.take = parseInt(limit);
