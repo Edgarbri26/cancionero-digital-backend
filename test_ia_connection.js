@@ -1,52 +1,33 @@
-const axios = require('axios');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const IA_API_URL = process.env.IA_API_URL || 'https://api-ia-nj05.onrender.com/api';
-const IA_API_KEY = process.env.IA_API_KEY || '';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 
-async function testIAConnection() {
+async function testGeminiConnection() {
+    console.log('🔌 Probando conexión con Google Gemini...');
+    console.log('API Key configurada:', GEMINI_API_KEY ? 'Sí' : 'No');
+
+    if (!GEMINI_API_KEY) {
+        console.error('❌ Error: GEMINI_API_KEY no encontrada en variables de entorno.');
+        console.error('Por favor agrega GEMINI_API_KEY=tu_api_key a tu archivo .env');
+        return;
+    }
+
     try {
-        console.log('🔌 Probando conexión con la API de IA...');
-        console.log('URL:', IA_API_URL);
-        console.log('API Key configurada:', IA_API_KEY ? 'Sí' : 'No');
-        console.log('');
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
-        if (IA_API_KEY) {
-            headers['Authorization'] = `Bearer ${IA_API_KEY}`;
-        }
-
-        const response = await axios.post(`${IA_API_URL}/chat`, {
-            messages: [
-                {
-                    role: 'system',
-                    content: 'Eres un asistente útil.'
-                },
-                {
-                    role: 'user',
-                    content: 'Di "hola" en formato JSON: {"message": "tu respuesta"}'
-                }
-            ],
-            model: 'llama-3.3-70b-versatile',
-            temperature: 0.1,
-            max_tokens: 100
-        }, { headers });
+        console.log('🤖 Enviando prompt de prueba a gemini-1.5-flash...');
+        const result = await model.generateContent('Di "Hola, funcionamiento correcto" si me escuchas.');
+        const response = await result.response;
+        const text = response.text();
 
         console.log('✅ Conexión exitosa!');
-        console.log('Status:', response.status);
-        console.log('Respuesta:', JSON.stringify(response.data, null, 2));
+        console.log('Respuesta:', text);
 
     } catch (error) {
         console.error('❌ Error de conexión:');
-        if (error.response) {
-            console.error('Status:', error.response.status);
-            console.error('Data:', error.response.data);
-        } else {
-            console.error(error.message);
-        }
+        console.error(error.message);
     }
 }
 
-testIAConnection();
+testGeminiConnection();

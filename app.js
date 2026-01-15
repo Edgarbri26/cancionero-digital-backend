@@ -5,8 +5,11 @@ require('dotenv').config();
 const routes = require('./routes');
 
 const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
 
 const app = express();
+
+app.use(morgan('dev'));
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:4321', // Frontend URL
