@@ -11,9 +11,27 @@ const app = express();
 
 app.use(morgan('dev'));
 
+const allowedOrigins = [
+    'http://localhost:4321',
+    'http://localhost:4322',
+    'https://www.micancionero.online',
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [])
+];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:4321', // Frontend URL
-    credentials: true // Allow cookies
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log("Blocked by CORS:", origin);
+            // Optional: return callback(new Error('Not allowed by CORS'));
+            // For debugging production issues, we might want to fail loudly or log it.
+            callback(null, false);
+        }
+    },
+    credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
