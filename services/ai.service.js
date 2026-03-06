@@ -320,8 +320,152 @@ Responde SOLO con el objeto JSON, sin texto adicional.`;
     }
 }
 
+/**
+ * Busca una canción original analizando una imagen (foto o captura)
+ * @param {string} imageBase64 - Imagen en formato base64
+ * @param {string} artist - Artista/autor de la canción (opcional)
+ * @param {string} title - Título de la canción (opcional)
+ * @returns {Promise<Object>} - Objeto con la canción encontrada en formato ChordPro y metadata
+ */
+async function searchSongByImage(imageBase64, artist = '', title = '') {
+    try {
+        const artistInfo = artist ? ` del artista ${artist}` : '';
+        const titleInfo = title ? ` con el título "${title}"` : '';
+
+        const prompt = `Tu tarea es IDENTIFICAR una canción católica existente usando el texto o partitura presente en la imagen proporcionada.
+${titleInfo}${artistInfo}
+
+⚠️ REGLAS CRÍTICAS - DEBES SEGUIRLAS ESTRICTAMENTE:
+
+1. SOLO puedes devolver canciones católicas que REALMENTE EXISTEN
+2. NO PUEDES INVENTAR, CREAR o GENERAR canciones nuevas
+3. Si NO RECONOCES la canción con certeza basándote en la imagen, DEBES responder con un error
+4. La letra debe ser EXACTAMENTE como la canción original, palabra por palabra
+5. NO modifiques, parafrasees o "mejores" la letra original
+
+FORMATO DE RESPUESTA:
+
+Si RECONOCES la canción (estás 100% seguro):
+{
+  "found": true,
+  "title": "Título EXACTO de la canción real",
+  "artist": "Artista/compositor REAL",
+  "key": "Tono sugerido",
+  "chordPro": "Letra ORIGINAL COMPLETA con acordes en formato ChordPro"
+}
+
+Si NO RECONOCES la canción o tienes dudas:
+{
+  "found": false,
+  "error": "No se pudo identificar la canción a partir de la imagen proporcionada"
+}
+
+Formato ChordPro (solo si encontraste la canción):
+- Usa [] para acordes: [C], [G], [Am]
+- Usa {c: } para secciones: {c: Verso 1}, {c: Coro}
+
+Responde SOLO con el objeto JSON, sin texto adicional.`;
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        if (IA_API_KEY) {
+            headers['Authorization'] = `Bearer ${IA_API_KEY}`;
+        }
+
+        // Add proper base64 data prefix logic and extract mimeType
+        let mimeType = 'image/jpeg';
+        let base64Data = imageBase64;
+
+        if (imageBase64.includes('data:image')) {
+            const matches = imageBase64.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+            if (matches && matches.length === 3) {
+                mimeType = matches[1];
+                base64Data = matches[2];
+            }
+        }
+
+        // Use Groq API directly since the Render proxy does not support image arrays
+        const THE_GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+        const THE_GROQ_KEY = process.env.GROQ_API_KEY || "";
+
+        const groqHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${THE_GROQ_KEY}`
+        };
+
+        const imageUrlFormatted = `data:${mimeType};base64,${base64Data}`;
+
+        const response = await axios.post(THE_GROQ_URL, {
+            messages: [
+                {
+                    role: 'system',
+                    content: 'Eres un asistente que SOLO identifica canciones católicas REALES que existen. Puedes analizar imágenes. NUNCA inventas o creas canciones nuevas. Si no reconoces una canción, SIEMPRE respondes con un error. Respondes únicamente en JSON.'
+                },
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        { type: 'image_url', image_url: { url: imageUrlFormatted } }
+                    ]
+                }
+            ],
+            model: 'llama-3.2-90b-vision-preview',
+            temperature: 0.1,
+            max_tokens: 2500,
+            response_format: { type: "json_object" }
+        }, { headers: groqHeaders });
+
+        let content = '';
+
+        if (typeof response.data === 'object' && response.data !== null && response.data.choices) {
+            content = response.data.choices[0].message.content;
+        } else if (response.data && response.data.content) {
+            content = response.data.content;
+        } else if (typeof response.data === 'string') {
+            content = response.data;
+        } else {
+            content = JSON.stringify(response.data);
+        }
+
+        console.log('Contenido recibido de IA (Imagen):', content.substring(0, 200) + '...');
+
+        let result;
+        try {
+            if (typeof content === 'string') {
+                const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                result = JSON.parse(cleanContent);
+            } else {
+                result = content;
+            }
+        } catch (parseError) {
+            console.error('Error al parsear respuesta JSON de IA (Imagen):', parseError);
+            throw new Error('La IA no devolvió un formato JSON válido al analizar la imagen');
+        }
+
+        if (!result.found || result.found === false) {
+            throw new Error(result.error || 'No se pudo identificar la canción a partir de la imagen proporcionada.');
+        }
+
+        if (!result.chordPro) {
+            throw new Error('La respuesta no contiene el campo chordPro');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error al buscar canción con imagen (IA):', error.message);
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+        throw new Error(`Error al buscar la canción por imagen: ${error.message}`);
+    }
+}
+
 module.exports = {
     generateSongWithChords,
     autocompleteChordsForLyrics,
-    searchSongByLyrics
+    searchSongByLyrics,
+    searchSongByImage
 };
