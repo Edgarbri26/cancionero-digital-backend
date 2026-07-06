@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const { connectRedis } = require('./services/redis');
 
 const routes = require('./routes');
-
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 
@@ -46,9 +46,12 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-    });
+    (async () => {
+        await connectRedis();
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    })();
 }
 
 module.exports = app;
