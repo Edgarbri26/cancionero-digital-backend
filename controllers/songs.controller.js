@@ -1,4 +1,8 @@
 const prisma = require('../prismaClient');
+const cache = require('../services/cache.service');
+
+const SONGS_LIST_TTL = 3600; // 1 hour
+const SONG_DETAIL_TTL = 900; // 15 minutes
 
 exports.getAllSongs = async (req, res) => {
     try {
@@ -41,7 +45,10 @@ exports.getAllSongs = async (req, res) => {
         };
 
         if (!q) {
-            // Optimization: Select only necessary fields for list view (exclude 'content')
+            const cacheKey = `songs:list:${categoryId || 'all'}:${activeFilter}`;
+            const cached = await cache.get(cacheKey);
+            if (cached) return res.json(cached);
+
             queryOptions.select = {
                 id: true,
                 title: true,
@@ -54,7 +61,6 @@ exports.getAllSongs = async (req, res) => {
                 user: { select: { name: true } }
             };
         } else {
-            // If searching, we need content for filtering (in-memory)
             queryOptions.include = { category: true, user: { select: { name: true } } };
         }
 
@@ -65,6 +71,8 @@ exports.getAllSongs = async (req, res) => {
         const songs = await prisma.song.findMany(queryOptions);
 
         if (!q) {
+            const cacheKey = `songs:list:${categoryId || 'all'}:${activeFilter}`;
+            await cache.set(cacheKey, songs, SONGS_LIST_TTL);
             return res.json(songs);
         }
 
@@ -105,11 +113,13 @@ exports.createSong = async (req, res) => {
                 content,
                 key,
                 url_song,
-                categoryId: parseInt(categoryId), // Ensure it's an integer
+                categoryId: parseInt(categoryId),
                 active: true,
-                userId: req.user ? req.user.id : null // Save the user who created the song
+                userId: req.user ? req.user.id : null
             },
         });
+        await cache.delPattern('songs:list:*');
+        await cache.del('stats');
         res.json(song);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -119,11 +129,17 @@ exports.createSong = async (req, res) => {
 exports.getSongById = async (req, res) => {
     const { id } = req.params;
     try {
+        const cacheKey = `songs:detail:${id}`;
+        const cached = await cache.get(cacheKey);
+        if (cached) return res.json(cached);
+
         const song = await prisma.song.findUnique({
             where: { id: parseInt(id) },
             include: { category: true, user: { select: { name: true } } },
         });
         if (!song) return res.status(404).json({ error: 'Song not found' });
+
+        await cache.set(cacheKey, song, SONG_DETAIL_TTL);
         res.json(song);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -147,6 +163,9 @@ exports.updateSong = async (req, res) => {
             where: { id: parseInt(id) },
             data
         });
+        await cache.delPattern('songs:list:*');
+        await cache.del(`songs:detail:${id}`);
+        await cache.del('stats');
         res.json(song);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -159,6 +178,9 @@ exports.deleteSong = async (req, res) => {
         await prisma.song.delete({
             where: { id: parseInt(id) },
         });
+        await cache.delPattern('songs:list:*');
+        await cache.del(`songs:detail:${id}`);
+        await cache.del('stats');
         res.json({ message: 'Song deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });

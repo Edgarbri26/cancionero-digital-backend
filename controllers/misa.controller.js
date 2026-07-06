@@ -1,4 +1,7 @@
 const prisma = require('../prismaClient');
+const cache = require('../services/cache.service');
+
+const MISAS_LIST_TTL = 3600; // 1 hour
 
 const getUserId = (req) => {
     return req.user?.id || null;
@@ -7,6 +10,11 @@ const getUserId = (req) => {
 exports.getAllMisas = async (req, res) => {
     const userId = getUserId(req);
     try {
+        if (!userId) {
+            const cached = await cache.get('misas:public');
+            if (cached) return res.json(cached);
+        }
+
         const whereClause = {
             OR: [
                 { visibility: 'PUBLIC' }
@@ -34,6 +42,11 @@ exports.getAllMisas = async (req, res) => {
             ...misa,
             isOwner: Boolean(userId && misa.userId === userId)
         }));
+
+        if (!userId) {
+            await cache.set('misas:public', misasWithOwnership, MISAS_LIST_TTL);
+        }
+
         res.json(misasWithOwnership);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -87,7 +100,6 @@ exports.getMisaById = async (req, res) => {
 
 exports.createMisa = async (req, res) => {
     const { title, dateMisa, visibility } = req.body;
-    // req.user is set by middleware
     const userId = req.user ? req.user.id : null;
 
     try {
@@ -99,6 +111,7 @@ exports.createMisa = async (req, res) => {
                 userId: userId
             },
         });
+        await cache.delPattern('misas:*');
         res.json(misa);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -131,6 +144,7 @@ exports.updateMisa = async (req, res) => {
                 visibility
             },
         });
+        await cache.delPattern('misas:*');
         res.json(misa);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -153,6 +167,7 @@ exports.deleteMisa = async (req, res) => {
         await prisma.misa.delete({
             where: { id: parseInt(id) },
         });
+        await cache.delPattern('misas:*');
         res.json({ message: 'Misa deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -187,6 +202,7 @@ exports.addSongToMisa = async (req, res) => {
             },
             include: { song: true, moment: true }
         });
+        await cache.delPattern('misas:*');
         res.json(misaSong);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -211,6 +227,7 @@ exports.removeSongFromMisa = async (req, res) => {
         await prisma.misaSong.delete({
             where: { id: parseInt(misaSongId) }
         });
+        await cache.delPattern('misas:*');
         res.json({ message: 'Song removed from misa' });
     } catch (error) {
         res.status(500).json({ error: error.message });
