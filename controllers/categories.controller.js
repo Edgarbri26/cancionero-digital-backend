@@ -1,4 +1,5 @@
 const prisma = require('../prismaClient');
+const cache = require('../services/cache.service');
 
 exports.getAllCategories = async (req, res) => {
     try {
@@ -18,6 +19,7 @@ exports.createCategory = async (req, res) => {
         const category = await prisma.category.create({
             data: { name },
         });
+        await cache.del('stats');
         res.json(category);
     } catch (error) {
         res.status(500).json({ error: error.message });
